@@ -106,6 +106,8 @@ func (ks *KymaIntegrationServer) generateKeysAndCertificate(subject string) *CAC
 	return cert
 }
 
+//TODO: double check : https://www.socketloop.com/tutorials/golang-create-x509-certificate-private-and-public-keys
+
 func generateCSR(names pkix.Name, expiration time.Duration, size int) (*CACertificate, error) {
 	keys, err := rsa.GenerateKey(rand.Reader, size)
 	if err != nil {
@@ -122,7 +124,7 @@ func generateCSR(names pkix.Name, expiration time.Duration, size int) (*CACertif
 	// step: generate a csr template
 	var csrTemplate = x509.CertificateRequest{
 		Subject:            names,
-		SignatureAlgorithm: x509.SHA512WithRSA,
+		SignatureAlgorithm: x509.SHA256WithRSA,
 		ExtraExtensions: []pkix.Extension{
 			{
 				Id:       asn1.ObjectIdentifier{2, 5, 29, 19},

@@ -2,7 +2,9 @@ package main
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
@@ -15,6 +17,7 @@ type KymaIntegrationServer struct {
 	cert                                            *CACertificate
 	dir, csrPath, pubPath, privPath, serverCertPath string
 	httpClient                                      *http.Client
+	httpSecureClient                                *http.Client
 	listenNoTLS, listenTLS                          net.Listener
 	appInfo                                         *ApplicationConnectResponse
 }
@@ -37,10 +40,10 @@ func NewKymaIntegrationServer() *KymaIntegrationServer {
 
 	return &KymaIntegrationServer{
 		dir:            envDir,
-		csrPath:        path.Join(envDir, "cert.csr"),
-		pubPath:        path.Join(envDir, "rsa.pub"),
-		privPath:       path.Join(envDir, "rsa.priv"),
-		serverCertPath: path.Join(envDir, "servercert.crt"),
+		csrPath:        path.Join(envDir, "request.csr"),
+		pubPath:        path.Join(envDir, "client.crt"),
+		privPath:       path.Join(envDir, "client.key"),
+		serverCertPath: path.Join(envDir, "server.crt"),
 		httpClient:     &http.Client{Transport: tr},
 	}
 }
@@ -80,6 +83,32 @@ func (ks *KymaIntegrationServer) startListenTLS() {
 		log.Fatal(err)
 	}
 	go func() {
+		fmt.Println("updating http client with certificate")
+		// Load client cert
+		cert, err := tls.LoadX509KeyPair(ks.serverCertPath, ks.privPath)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// Load CA cert
+		caCert, err := ioutil.ReadFile(ks.serverCertPath)
+		if err != nil {
+			log.Fatal(err)
+		}
+		caCertPool := x509.NewCertPool()
+		caCertPool.AppendCertsFromPEM(caCert)
+
+		tlsConfig := &tls.Config{
+			InsecureSkipVerify: true,
+			Certificates:       []tls.Certificate{cert},
+			RootCAs:            caCertPool,
+		}
+		tlsConfig.BuildNameToCertificate()
+
+		tr := &http.Transport{
+			TLSClientConfig: tlsConfig,
+		}
+		ks.httpSecureClient = &http.Client{Transport: tr}
 		fmt.Println("Listening on 8443")
 		http.ServeTLS(ks.listenTLS, nil, ks.serverCertPath, ks.privPath)
 	}()
