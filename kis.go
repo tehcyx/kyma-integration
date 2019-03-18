@@ -11,6 +11,8 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+
+	"github.com/tehcyx/kyma-github-integration/rest"
 )
 
 type KymaIntegrationServer struct {
@@ -53,6 +55,11 @@ func (ks *KymaIntegrationServer) Start() {
 	http.HandleFunc("/github_callback", ks.gitHubCallbackHandler)
 	http.HandleFunc("/connect", ks.connectHandler)
 	http.HandleFunc("/register-service", ks.registerServiceHandler)
+
+	// business logic
+	restAPI := new(rest.API)
+
+	http.HandleFunc("/api/v1/test", restAPI.V1.GetTestHandler)
 
 	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%s", "127.0.0.1", "8080"))
 	ks.listenNoTLS = listener

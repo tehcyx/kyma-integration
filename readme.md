@@ -22,6 +22,3 @@
 * Regenaration of certificate somehow broken as it will empty out the cert file
     * if this is fixed it would allow for auto-restart of TLS listener as this is already implemented
 * register of API is working but needs to change to automatically packing up a swagger definition of the current registered API
-
-# questions
-* Why do i have to reconnect my application when i restart the application? I get an error when i try to register a service when I restarted it

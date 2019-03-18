@@ -104,7 +104,7 @@ func (ks *KymaIntegrationServer) registerServiceHandler(w http.ResponseWriter, r
 	serviceDescription.Name = "Daniel's Service"
 
 	serviceDescription.API = new(ServiceAPI)
-	serviceDescription.API.TargetURL = "https://localhost:8443"
+	serviceDescription.API.TargetURL = "http://localhost:8080"
 	serviceDescription.API.Spec = json.RawMessage(`{
 		"swagger":"2.0",
 		"info":{  
