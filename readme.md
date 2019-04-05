@@ -21,4 +21,4 @@
 * Connect to kyma
 * Regenaration of certificate somehow broken as it will empty out the cert file
     * if this is fixed it would allow for auto-restart of TLS listener as this is already implemented
-* register of API is working but needs to change to automatically packing up a swagger definition of the current registered API
+* register of API is working

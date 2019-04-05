@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 
-	"github.com/google/martian/log"
+	"log"
 )
 
 type Service struct {
@@ -91,11 +91,12 @@ func (ks *KymaIntegrationServer) registerServiceHandler(w http.ResponseWriter, r
 
 	serviceDescription := new(Service)
 
-	serviceDescription.Documentation = new(ServiceDocumentation)
-	serviceDescription.Documentation.DisplayName = "Test"
-	serviceDescription.Documentation.Description = "test decsription"
-	serviceDescription.Documentation.Tags = []string{"Tag1", "Tag2"}
-	serviceDescription.Documentation.Type = "Test Type"
+	// Documentation part of the serviceDescription broken: https://github.com/kyma-project/kyma/issues/3347
+	// serviceDescription.Documentation = new(ServiceDocumentation)
+	// serviceDescription.Documentation.DisplayName = "Test"
+	// serviceDescription.Documentation.Description = "test decsription"
+	// serviceDescription.Documentation.Tags = []string{"Tag1", "Tag2"}
+	// serviceDescription.Documentation.Type = "Test Type"
 
 	serviceDescription.Description = "API Description"
 	serviceDescription.ShortDescription = "API Short Description"
@@ -153,26 +154,27 @@ func (ks *KymaIntegrationServer) registerServiceHandler(w http.ResponseWriter, r
 		return
 	}
 
+	fmt.Println(string(jsonBytes))
+
 	// acquire NodePort to modify URL locally
 	// 30019
-	// https://gateway.kyma.local:31490/github-test/v1/metadata/services
-	// ks.appInfo.API.MetadataURL = "https://gateway.kyma.local:30019/github-test/v1/metadata/services"
+	// https://gateway.kyma.local:31635/github-test/v1/metadata/services
+	// ks.appInfo.API.MetadataURL = "https://gateway.kyma.local:31654/github-test/v1/metadata/services"
 
-	req, err := http.NewRequest("POST", "https://gateway.kyma.local:30019/github-test/v1/metadata/services", bytes.NewBuffer(jsonBytes))
+	req, err := http.NewRequest("POST", "https://gateway.kyma.local:31635/github-test/v1/metadata/services", bytes.NewBuffer(jsonBytes))
 	if err != nil {
-		log.Errorf("Couldn't register service: %s", err)
+		log.Printf("Couldn't register service: %s", err)
 	}
 	req.WithContext(ctx)
 
 	resp, err := ks.httpSecureClient.Do(req)
 	if err != nil {
-		log.Errorf("Couldn't register service: %s", err)
+		log.Printf("Couldn't register service: %s", err)
 	}
-	defer resp.Body.Close()
-
 	dump, err := httputil.DumpResponse(resp, true)
+	defer resp.Body.Close() // close body after using it
 	if err != nil {
-		log.Errorf("could not dump response: %v", err)
+		log.Printf("could not dump response: %v", err)
 	}
 	fmt.Printf("%s\n", dump)
 	bodyString := string(dump)
@@ -181,9 +183,9 @@ func (ks *KymaIntegrationServer) registerServiceHandler(w http.ResponseWriter, r
 	// bodyString := string(bodyBytes)
 
 	if resp.StatusCode == http.StatusOK {
-		log.Infof("Successfully registered service with ID %s", "id here")
+		log.Printf("Successfully registered service with ID %s", "id here")
 		fmt.Fprintf(w, bodyString)
 	} else {
-		fmt.Fprintf(w, "Status: %d >%s< \n on URL: %s", resp.StatusCode, bodyString, "https://gateway.kyma.local:30019/github-test/v1/metadata/services")
+		fmt.Fprintf(w, "Status: %d >%s< \n on URL: %s", resp.StatusCode, bodyString, "https://gateway.kyma.local:31635/github-test/v1/metadata/services")
 	}
 }
