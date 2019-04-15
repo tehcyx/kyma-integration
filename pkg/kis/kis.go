@@ -1,4 +1,4 @@
-package main
+package kis
 
 import (
 	"crypto/tls"
@@ -12,11 +12,13 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/tehcyx/kyma-github-integration/rest"
+	cert "github.com/tehcyx/kyma-github-integration/internal/certificate"
+	rest "github.com/tehcyx/kyma-github-integration/pkg/kis/api"
 )
 
+// KymaIntegrationServer struct for the server information
 type KymaIntegrationServer struct {
-	cert                                            *CACertificate
+	cert                                            *cert.CACertificate
 	dir, csrPath, pubPath, privPath, serverCertPath string
 	httpClient                                      *http.Client
 	httpSecureClient                                *http.Client
@@ -24,6 +26,7 @@ type KymaIntegrationServer struct {
 	appInfo                                         *ApplicationConnectResponse
 }
 
+// NewKymaIntegrationServer creates a new KymaIntegrationServer object
 func NewKymaIntegrationServer() *KymaIntegrationServer {
 	envDir := os.Getenv("KEY_DIR")
 	if envDir == "" {
@@ -50,6 +53,7 @@ func NewKymaIntegrationServer() *KymaIntegrationServer {
 	}
 }
 
+// Start starts the server, listening on 8080 (always) as well as 443 (if certificate exists)
 func (ks *KymaIntegrationServer) Start() {
 	http.HandleFunc("/", ks.indexHandler)
 	http.HandleFunc("/github_callback", ks.gitHubCallbackHandler)
@@ -70,7 +74,7 @@ func (ks *KymaIntegrationServer) Start() {
 	if ks.tlsCertExists() {
 		ks.startListenTLS()
 	}
-	fmt.Println("Listening on 8080")
+	fmt.Println("🔓 Listening on 8080")
 	http.Serve(ks.listenNoTLS, nil)
 }
 
@@ -116,7 +120,7 @@ func (ks *KymaIntegrationServer) startListenTLS() {
 			TLSClientConfig: tlsConfig,
 		}
 		ks.httpSecureClient = &http.Client{Transport: tr}
-		fmt.Println("Listening on 8443")
+		fmt.Println("🔐 Listening on 8443")
 		http.ServeTLS(ks.listenTLS, nil, ks.serverCertPath, ks.privPath)
 	}()
 }
