@@ -13,6 +13,7 @@ import (
 	"log"
 	"math/big"
 	"os"
+	"regexp"
 	"time"
 )
 
@@ -55,13 +56,42 @@ func (ks *KymaIntegrationServer) generateKeysAndCertificate(subject string) *CAC
 			}
 			cert.privateKey = string(privKeyBytes[:])
 		} else if os.IsNotExist(errCSR) && os.IsNotExist(errPub) && os.IsNotExist(errPriv) {
+			location := "Waldorf"
+			province := "Waldorf"
+			country := "DE"
+			organization := "Organization"
+			organizationalUnit := "OrgUnit"
+			commonName := "github-test"
+
+			if ks.appInfo != nil {
+				fmt.Println("Subject", ks.appInfo.Certificate.Subject)
+				fmt.Println("Extensions", ks.appInfo.Certificate.Extensions)
+				fmt.Println("KeyAlgorithm", ks.appInfo.Certificate.KeyAlgorithm)
+
+				subjectMatch := regexp.MustCompile("^OU=(?P<ou>.*),O=(?P<o>.*),L=(?P<l>.*),ST=(?P<st>.*),C=(?P<c>.*),CN=(?P<cn>.*)$")
+				match := subjectMatch.FindStringSubmatch(ks.appInfo.Certificate.Subject)
+				result := make(map[string]string)
+				for i, name := range subjectMatch.SubexpNames() {
+					if i != 0 && name != "" {
+						result[name] = match[i]
+					}
+				}
+				location = result["l"]
+				province = result["st"]
+				country = result["c"]
+				organization = result["o"]
+				organizationalUnit = result["ou"]
+				commonName = result["cn"]
+				ks.appName = commonName
+			}
+
 			subject := pkix.Name{
-				Locality:           []string{"Waldorf"},
-				Province:           []string{"Waldorf"},
-				Country:            []string{"DE"},
-				Organization:       []string{"Organization"},
-				OrganizationalUnit: []string{"OrgUnit"},
-				CommonName:         "github-test",
+				Locality:           []string{location},
+				Province:           []string{province},
+				Country:            []string{country},
+				Organization:       []string{organization},
+				OrganizationalUnit: []string{organizationalUnit},
+				CommonName:         commonName,
 				// ??:              []string{"OU=OrgUnit,O=Organization,L=Waldorf,ST=Waldorf,C=DE,CN=github-test"},
 			}
 

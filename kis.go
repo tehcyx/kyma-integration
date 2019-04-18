@@ -22,6 +22,7 @@ type KymaIntegrationServer struct {
 	httpSecureClient                                *http.Client
 	listenNoTLS, listenTLS                          net.Listener
 	appInfo                                         *ApplicationConnectResponse
+	appName                                         string
 }
 
 func NewKymaIntegrationServer() *KymaIntegrationServer {
@@ -61,7 +62,7 @@ func (ks *KymaIntegrationServer) Start() {
 
 	http.HandleFunc("/api/v1/test", restAPI.V1.GetTestHandler)
 
-	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%s", "127.0.0.1", "8080"))
+	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%s", "0.0.0.0", "8080"))
 	ks.listenNoTLS = listener
 	if err != nil {
 		log.Fatal(err)
@@ -84,7 +85,7 @@ func (ks *KymaIntegrationServer) startListenTLS() {
 		fmt.Println("Gracefully closing 443 to restart with new certificate.")
 		ks.listenTLS.Close()
 	}
-	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%s", "127.0.0.1", "8443"))
+	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%s", "0.0.0.0", "8443"))
 	ks.listenTLS = listener
 	if err != nil {
 		log.Fatal(err)

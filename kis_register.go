@@ -105,7 +105,7 @@ func (ks *KymaIntegrationServer) registerServiceHandler(w http.ResponseWriter, r
 	serviceDescription.Name = "Daniel's Service"
 
 	serviceDescription.API = new(ServiceAPI)
-	serviceDescription.API.TargetURL = "http://localhost:8080"
+	serviceDescription.API.TargetURL = "http://10.48.60.12:8080"
 	serviceDescription.API.Spec = json.RawMessage(`{
 		"swagger":"2.0",
 		"info":{  
@@ -117,7 +117,7 @@ func (ks *KymaIntegrationServer) registerServiceHandler(w http.ResponseWriter, r
 			  "email":"daniel.roth02@sap.com"
 		   }
 		},
-		"host":"localhost:8080",
+		"host":"10.48.60.12:8080",
 		"basePath":"/",
 		"tags":[  
 		   {  
@@ -156,12 +156,18 @@ func (ks *KymaIntegrationServer) registerServiceHandler(w http.ResponseWriter, r
 
 	fmt.Println(string(jsonBytes))
 
-	// acquire NodePort to modify URL locally
-	// 30019
-	// https://gateway.kyma.local:31635/github-test/v1/metadata/services
-	// ks.appInfo.API.MetadataURL = "https://gateway.kyma.local:31654/github-test/v1/metadata/services"
+	if ks.appName == "" {
+		ks.appName = "github-test"
+	}
 
-	req, err := http.NewRequest("POST", "https://gateway.kyma.local:31635/github-test/v1/metadata/services", bytes.NewBuffer(jsonBytes))
+	// acquire NodePort to modify URL locally: kubectl -n kyma-system get svc application-connector-ingress-nginx-ingress-controller -o 'jsonpath={.spec.ports[?(@.port==443)].nodePort}'
+	// ks.appInfo.API.MetadataURL = "https://gateway.kyma.local:32524/github-test/v1/metadata/services"
+	metadataURL := fmt.Sprintf("https://gateway.kyma.local:32524/%s/v1/metadata/services", ks.appName)
+	// if ks.appInfo != nil && ks.appInfo.API.MetadataURL != "" {
+	// 	metadataURL = ks.appInfo.API.MetadataURL
+	// }
+
+	req, err := http.NewRequest("POST", metadataURL, bytes.NewBuffer(jsonBytes))
 	if err != nil {
 		log.Printf("Couldn't register service: %s", err)
 	}
@@ -186,6 +192,6 @@ func (ks *KymaIntegrationServer) registerServiceHandler(w http.ResponseWriter, r
 		log.Printf("Successfully registered service with ID %s", "id here")
 		fmt.Fprintf(w, bodyString)
 	} else {
-		fmt.Fprintf(w, "Status: %d >%s< \n on URL: %s", resp.StatusCode, bodyString, "https://gateway.kyma.local:31635/github-test/v1/metadata/services")
+		fmt.Fprintf(w, "Status: %d >%s< \n on URL: %s", resp.StatusCode, bodyString, metadataURL)
 	}
 }
