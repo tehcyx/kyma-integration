@@ -1,15 +1,18 @@
-package cert
+package certificate
 
 import (
 	"bytes"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/pem"
 	"fmt"
+	"io/ioutil"
 	"math/big"
+	"net/http"
 	"time"
 )
 
@@ -82,8 +85,45 @@ func GenerateCSR(names pkix.Name, expiration time.Duration, size int) (*CACertif
 	}
 
 	return &CACertificate{
-		privateKey: privateKey.String(),
-		publicKey:  request.String(),
-		csr:        string(csr),
+		PrivateKey: privateKey.String(),
+		PublicKey:  request.String(),
+		Csr:        string(csr),
 	}, nil
+}
+
+func LoadClientCert(cert *CACertificate) (tls.Certificate, error) {
+	// Load client cert
+	return tls.LoadX509KeyPair(cert.ServerCertPath, cert.PrivateKeyPath)
+}
+
+func LoadServerCertBytes(cert *CACertificate) ([]byte, error) {
+	// Load CA cert
+	return ioutil.ReadFile(cert.ServerCertPath)
+}
+
+func CreateTLSConfig(cert *CACertificate) (*http.Transport, error) {
+	clientCert, err := LoadClientCert(cert)
+	if err != nil {
+		return nil, err
+	}
+
+	serverCertBytes, err := LoadServerCertBytes(cert)
+	if err != nil {
+		return nil, err
+	}
+
+	caCertPool := x509.NewCertPool()
+	caCertPool.AppendCertsFromPEM(serverCertBytes)
+
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: true,
+		Certificates:       []tls.Certificate{clientCert},
+		RootCAs:            caCertPool,
+	}
+	tlsConfig.BuildNameToCertificate()
+
+	return &http.Transport{
+		TLSClientConfig: tlsConfig,
+	}, nil
+
 }

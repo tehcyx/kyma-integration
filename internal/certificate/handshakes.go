@@ -1,4 +1,4 @@
-package cert
+package certificate
 
 type CertConnectResponse struct {
 	Cert string `json:"crt,omitempty"`
@@ -23,7 +23,13 @@ type CertificateData struct {
 }
 
 type CACertificate struct {
-	privateKey string
-	publicKey  string
-	csr        string
+	PrivateKey string
+	PublicKey  string
+	Csr        string
+
+	PrivateKeyPath string
+	PublicKeyPath  string
+	CsrPath        string
+
+	ServerCertPath string
 }
