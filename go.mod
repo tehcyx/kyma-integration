@@ -1,3 +1,3 @@
-module github.com/tehcyx/kyma-github-integration
+module github.com/tehcyx/kyma-integration
 
 go 1.12
