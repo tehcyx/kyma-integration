@@ -136,7 +136,8 @@ func (srv *Server) GenerateKeysAndCertificate(subject string) *certificate.CACer
 			commonName := "github-test"
 
 			if subject != "" {
-				subjectMatch := regexp.MustCompile("^OU=(?P<ou>.*),O=(?P<o>.*),L=(?P<l>.*),ST=(?P<st>.*),C=(?P<c>.*),CN=(?P<cn>.*)$")
+				//TODO: add a more generic version of this, as it panics if the order of the elements in the subject line is changed
+				subjectMatch := regexp.MustCompile("^O=(?P<o>.*),OU=(?P<ou>.*),L=(?P<l>.*),ST=(?P<st>.*),C=(?P<c>.*),CN=(?P<cn>.*)$")
 				match := subjectMatch.FindStringSubmatch(subject)
 				result := make(map[string]string)
 				for i, name := range subjectMatch.SubexpNames() {

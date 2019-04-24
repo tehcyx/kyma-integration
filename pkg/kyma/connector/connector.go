@@ -190,8 +190,8 @@ func (kc *KymaConnector) registerServiceHandler(w http.ResponseWriter, r *http.R
 	}
 
 	// acquire NodePort to modify URL locally: kubectl -n kyma-system get svc application-connector-ingress-nginx-ingress-controller -o 'jsonpath={.spec.ports[?(@.port==443)].nodePort}'
-	// ks.appInfo.API.MetadataURL = "https://gateway.kyma.local:31615/github-test/v1/metadata/services"
-	metadataURL := fmt.Sprintf("https://gateway.kyma.local:31615/%s/v1/metadata/services", kc.Serving.AppName)
+	// ks.appInfo.API.MetadataURL = "https://gateway.kyma.local:32515/github-test/v1/metadata/services"
+	metadataURL := fmt.Sprintf("https://gateway.kyma.local:32515/%s/v1/metadata/services", kc.Serving.AppName)
 	// if ks.appInfo != nil && ks.appInfo.API.MetadataURL != "" {
 	// 	metadataURL = ks.appInfo.API.MetadataURL
 	// }
