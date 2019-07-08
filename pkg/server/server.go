@@ -133,7 +133,7 @@ func (srv *Server) GenerateKeysAndCertificate(subject string) *certificate.CACer
 			country := "DE"
 			organization := "Organization"
 			organizationalUnit := "OrgUnit"
-			commonName := "github-test"
+			commonName := "api-test"
 
 			if subject != "" {
 				//TODO: add a more generic version of this, as it panics if the order of the elements in the subject line is changed
@@ -161,7 +161,7 @@ func (srv *Server) GenerateKeysAndCertificate(subject string) *certificate.CACer
 				Organization:       []string{organization},
 				OrganizationalUnit: []string{organizationalUnit},
 				CommonName:         commonName,
-				// ??:              []string{"OU=OrgUnit,O=Organization,L=Waldorf,ST=Waldorf,C=DE,CN=github-test"},
+				// ??:              []string{"OU=OrgUnit,O=Organization,L=Waldorf,ST=Waldorf,C=DE,CN=api-test"},
 			}
 
 			genCert, err := certificate.GenerateCSR(subject, time.Duration(1200), 2048)

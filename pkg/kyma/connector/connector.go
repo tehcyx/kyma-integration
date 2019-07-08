@@ -131,8 +131,8 @@ func (kc *KymaConnector) registerServiceHandler(w http.ResponseWriter, r *http.R
 	serviceDescription.Description = "API Description"
 	serviceDescription.ShortDescription = "API Short Description"
 
-	serviceDescription.Provider = "Daniel"
-	serviceDescription.Name = "Daniel's Service"
+	serviceDescription.Provider = "Kyma example"
+	serviceDescription.Name = "Kyma example service"
 
 	serviceDescription.API = new(ServiceAPI)
 	if envIP := os.Getenv("INSTANCE_IP"); envIP != "" {
@@ -143,27 +143,27 @@ func (kc *KymaConnector) registerServiceHandler(w http.ResponseWriter, r *http.R
 	serviceDescription.API.Spec = json.RawMessage(`{
 		"swagger":"2.0",
 		"info":{  
-		   "description":"API example",
+		   "description":"Kyma API example",
 		   "version":"1.0",
-		   "title":"Github Kubernetes API",
+		   "title":"Kyma example",
 		   "contact":{  
 			  "name":"Daniel Roth",
-			  "email":"daniel.roth02@sap.com"
+			  "email":"email@email.com"
 		   }
 		},
 		"host":"localhost:8080",
 		"basePath":"/",
 		"tags":[  
 		   {  
-			  "name":"github-api",
-			  "description":"Github Api"
+			  "name":"kyma-integration-golang-api",
+			  "description":"Kyma integration Golang Api"
 		   }
 		],
 		"paths":{  
 		   "/api/v1/test":{  
 			  "get":{  
 				 "tags":[  
-					"github-api"
+					"kyma-integration-golang-api"
 				 ],
 				 "summary":"Test",
 				 "description":"this is a test",
