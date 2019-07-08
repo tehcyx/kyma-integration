@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"os"
 
 	"github.com/tehcyx/kyma-integration/internal/handler"
 
@@ -134,7 +135,11 @@ func (kc *KymaConnector) registerServiceHandler(w http.ResponseWriter, r *http.R
 	serviceDescription.Name = "Daniel's Service"
 
 	serviceDescription.API = new(ServiceAPI)
-	serviceDescription.API.TargetURL = "http://10.48.60.12:8080"
+	if envIP := os.Getenv("INSTANCE_IP"); envIP != "" {
+		serviceDescription.API.TargetURL = fmt.Sprintf("%s:8080", envIP)
+	} else {
+		serviceDescription.API.TargetURL = "http://localhost:8080"
+	}
 	serviceDescription.API.Spec = json.RawMessage(`{
 		"swagger":"2.0",
 		"info":{  
@@ -146,7 +151,7 @@ func (kc *KymaConnector) registerServiceHandler(w http.ResponseWriter, r *http.R
 			  "email":"daniel.roth02@sap.com"
 		   }
 		},
-		"host":"10.48.60.12:8080",
+		"host":"localhost:8080",
 		"basePath":"/",
 		"tags":[  
 		   {  

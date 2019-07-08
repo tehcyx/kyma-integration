@@ -1,0 +1,118 @@
+{
+  "provider": "example-provider",
+  "name": "example-name",
+  "description": "This is the long description of your service",
+  "shortDescription": "Short description",
+  "labels": {
+    "example": "true"
+  },
+  "api": {
+    "targetUrl": "https://httpbin.org/",
+    "spec": {  
+      "swagger":"2.0",
+      "info":{  
+         "description":"API example",
+         "version":"1.0",
+         "title":"Github Kubernetes API",
+         "contact":{  
+            "name":"Daniel Roth",
+            "email":"daniel.roth02@sap.com"
+         }
+      },
+      "host":"kis.local:8080",
+      "basePath":"/",
+      "tags":[  
+         {  
+            "name":"github-api",
+            "description":"Github Api"
+         }
+      ],
+      "paths":{  
+         "/api/v1/test":{  
+            "get":{  
+               "tags":[  
+                  "github-api"
+               ],
+               "summary":"Test",
+               "description":"this is a test",
+               "operationId":"opId1",
+               "produces":[  
+                  "*/*"
+               ],
+               "responses":{  
+                  "200":{  
+                     "description":"OK"
+                  }
+               },
+               "deprecated":false
+            }
+         }
+      }
+   }
+  },
+  "events": {
+    "spec": {
+      "asyncapi": "1.0.0",
+      "info": {
+        "title": "PetStore Events",
+        "version": "1.0.0",
+        "description": "Description of all the events"
+      },
+      "baseTopic": "stage.com.some.company.system",
+      "topics": {
+        "petCreated.v1": {
+          "subscribe": {
+            "summary": "Event containing information about new pet added to the Pet Store.",
+            "payload": {
+              "type": "object",
+              "properties": {
+                "pet": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "name"
+                  ],
+                  "example": {
+                    "id": "4caad296-e0c5-491e-98ac-0ed118f9474e",
+                    "category": "mammal",
+                    "name": "doggie"
+                  },
+                  "properties": {
+                    "id": {
+                      "title": "Id",
+                      "description": "Resource identifier",
+                      "type": "string"
+                    },
+                    "name": {
+                      "title": "Name",
+                      "description": "Pet name",
+                      "type": "string"
+                    },
+                    "category": {
+                      "title": "Category",
+                      "description": "Animal category",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "documentation": {
+    "displayName": "Documentation",
+    "description": "Description",
+    "type": "some type",
+    "tags": ["tag1", "tag2"],
+    "docs": [
+        {
+        "title": "Documentation title...",
+        "type": "type",
+        "source": "source"
+        }
+    ]
+  }
+}

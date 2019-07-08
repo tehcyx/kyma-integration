@@ -22,3 +22,15 @@
 * Regenaration of certificate somehow broken as it will empty out the cert file
     * if this is fixed it would allow for auto-restart of TLS listener as this is already implemented
 * register of API is working
+
+
+# Kyma and Kyma-integration on Minikube
+
+* Install kyma, e.g. with [kyma-cli](https://github.com/kyma-incubator/kyma-cli)
+
+> So to use an image without uploading it, you can follow these steps:
+> 
+> * Set the environment variables with eval $(minikube docker-env)
+> * Build the image with the Docker daemon of Minikube (eg docker build -t my-image .)
+> * Set the image in the pod spec like the build tag (eg my-image)
+> * Set the imagePullPolicy to Never, otherwise Kubernetes will try to download the image.

@@ -128,8 +128,8 @@ func (srv *Server) GenerateKeysAndCertificate(subject string) *certificate.CACer
 			}
 			appCert.PrivateKey = string(privKeyBytes[:])
 		} else if os.IsNotExist(errCSR) && os.IsNotExist(errPub) && os.IsNotExist(errPriv) {
-			location := "Waldorf"
-			province := "Waldorf"
+			location := "Walldorf"
+			province := "Walldorf"
 			country := "DE"
 			organization := "Organization"
 			organizationalUnit := "OrgUnit"
