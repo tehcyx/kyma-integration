@@ -122,11 +122,11 @@ func (kc *KymaConnector) registerServiceHandler(w http.ResponseWriter, r *http.R
 	serviceDescription := new(Service)
 
 	// Documentation part of the serviceDescription broken: https://github.com/kyma-project/kyma/issues/3347
-	// serviceDescription.Documentation = new(ServiceDocumentation)
-	// serviceDescription.Documentation.DisplayName = "Test"
-	// serviceDescription.Documentation.Description = "test decsription"
-	// serviceDescription.Documentation.Tags = []string{"Tag1", "Tag2"}
-	// serviceDescription.Documentation.Type = "Test Type"
+	serviceDescription.Documentation = new(ServiceDocumentation)
+	serviceDescription.Documentation.DisplayName = "Test"
+	serviceDescription.Documentation.Description = "test decsription"
+	serviceDescription.Documentation.Tags = []string{"Tag1", "Tag2"}
+	serviceDescription.Documentation.Type = "Test Type"
 
 	serviceDescription.Description = "API Description"
 	serviceDescription.ShortDescription = "API Short Description"
@@ -188,20 +188,11 @@ func (kc *KymaConnector) registerServiceHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	fmt.Println(string(jsonBytes))
-
-	if kc.Serving.AppName == "" {
-		kc.Serving.AppName = "github-test"
+	if kc.AppInfo == nil || kc.AppInfo.API.MetadataURL == "" {
+		fmt.Println(fmt.Errorf("metadata url is missing, cannot proceed"))
 	}
 
-	// acquire NodePort to modify URL locally: kubectl -n kyma-system get svc application-connector-ingress-nginx-ingress-controller -o 'jsonpath={.spec.ports[?(@.port==443)].nodePort}'
-	// ks.appInfo.API.MetadataURL = "https://gateway.kyma.local:32515/github-test/v1/metadata/services"
-	metadataURL := fmt.Sprintf("https://gateway.kyma.local:32515/%s/v1/metadata/services", kc.Serving.AppName)
-	// if ks.appInfo != nil && ks.appInfo.API.MetadataURL != "" {
-	// 	metadataURL = ks.appInfo.API.MetadataURL
-	// }
-
-	req, err := http.NewRequest("POST", metadataURL, bytes.NewBuffer(jsonBytes))
+	req, err := http.NewRequest("POST", kc.AppInfo.API.MetadataURL, bytes.NewBuffer(jsonBytes))
 	if err != nil {
 		log.Printf("Couldn't register service: %s", err)
 	}
@@ -219,14 +210,11 @@ func (kc *KymaConnector) registerServiceHandler(w http.ResponseWriter, r *http.R
 	fmt.Printf("%s\n", dump)
 	bodyString := string(dump)
 
-	// bodyBytes, _ := ioutil.ReadAll(resp.Body)
-	// bodyString := string(bodyBytes)
-
 	if resp.StatusCode == http.StatusOK {
-		log.Printf("Successfully registered service with ID %s", "id here")
+		log.Printf("Successfully registered service with")
 		fmt.Fprintf(w, bodyString)
 	} else {
-		fmt.Fprintf(w, "Status: %d >%s< \n on URL: %s", resp.StatusCode, bodyString, metadataURL)
+		fmt.Fprintf(w, "Status: %d >%s< \n on URL: %s", resp.StatusCode, bodyString, kc.AppInfo.API.MetadataURL)
 	}
 }
 

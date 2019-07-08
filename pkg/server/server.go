@@ -226,7 +226,7 @@ func (srv *Server) StartListenTLS() {
 			log.Fatalf("TLSConfig could not be created: %s\n", err.Error())
 		}
 		srv.SecureClient = &http.Client{Transport: tr}
-		fmt.Printf("🔐 Listening on %s:%s\n", srv.Host, srv.SecurePort)
+		log.Printf("🔐 Listening on %s:%s\n", srv.Host, srv.SecurePort)
 		http.ServeTLS(srv.ListenerTLS, nil, srv.Certificate.ServerCertPath, srv.Certificate.PrivateKeyPath)
 	}()
 }
