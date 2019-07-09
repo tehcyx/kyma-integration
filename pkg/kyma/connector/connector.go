@@ -68,7 +68,7 @@ func (kc *KymaConnector) connectHandler(w http.ResponseWriter, r *http.Request) 
 	params, ok := r.URL.Query()["url"]
 
 	if !ok || len(params[0]) < 1 {
-		log.Println("Url Param 'url' is missing")
+		log.Fatalf("Url Param 'url' is missing")
 		return
 	}
 	urlParam, err := url.Parse(params[0])
@@ -104,7 +104,7 @@ func (kc *KymaConnector) connectHandler(w http.ResponseWriter, r *http.Request) 
 	certBytes := []byte(certData.Cert)
 	errCert := ioutil.WriteFile(kc.Serving.Certificate.ServerCertPath, certBytes, 0644)
 	if errCert != nil {
-		log.Fatal("couldn't write server cert")
+		log.Fatalf("couldn't write server cert: %s", errCert)
 	}
 
 	kc.Serving.StartListenTLS()
@@ -180,32 +180,71 @@ func (kc *KymaConnector) registerServiceHandler(w http.ResponseWriter, r *http.R
 			  }
 		   }
 		}
-	 }`)
+	}`)
+
+	serviceDescription.Events = new(ServiceEvent)
+	serviceDescription.Events.Spec = json.RawMessage(`{
+		"asyncapi": "1.0.0",
+		"info": {
+			"title": "Example Events",
+			"version": "1.0.0",
+			"description": "Description of all the example events"
+		},
+		"baseTopic": "example.events.com",
+		"topics": {
+			"exampleEvent.v1": {
+				"subscribe": {
+					"summary": "Example event",
+					"payload": {
+						"type": "object",
+						"properties": {
+							"myObject": {
+								"type": "object",
+								"required": [
+									"id"
+								],
+								"example": {
+									"id": "4caad296-e0c5-491e-98ac-0ed118f9474e"
+								},
+								"properties": {
+									"id": {
+										"title": "Id",
+										"description": "Resource identifier",
+										"type": "string"
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}`)
 
 	jsonBytes, err := json.Marshal(serviceDescription)
 	if err != nil {
-		fmt.Println(err)
+		log.Fatalf("JSON marshal failed: %s", err)
 		return
 	}
 
 	if kc.AppInfo == nil || kc.AppInfo.API.MetadataURL == "" {
-		fmt.Println(fmt.Errorf("metadata url is missing, cannot proceed"))
+		log.Fatalf("%s", fmt.Errorf("metadata url is missing, cannot proceed"))
 	}
 
 	req, err := http.NewRequest("POST", kc.AppInfo.API.MetadataURL, bytes.NewBuffer(jsonBytes))
 	if err != nil {
-		log.Printf("Couldn't register service: %s", err)
+		log.Fatalf("Couldn't create request to register service: %s", err)
 	}
 	req.WithContext(ctx)
 
 	resp, err := kc.Serving.SecureClient.Do(req)
 	if err != nil {
-		log.Printf("Couldn't register service: %s", err)
+		log.Fatalf("Couldn't register service: %s", err)
 	}
 	dump, err := httputil.DumpResponse(resp, true)
 	defer resp.Body.Close() // close body after using it
 	if err != nil {
-		log.Printf("could not dump response: %v", err)
+		log.Fatalf("could not dump response: %v", err)
 	}
 	fmt.Printf("%s\n", dump)
 	bodyString := string(dump)

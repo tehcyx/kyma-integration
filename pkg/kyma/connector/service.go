@@ -44,31 +44,7 @@ type ServiceOAuthCredentials struct {
 
 // ServiceEvent kyma service event definition
 type ServiceEvent struct {
-	Spec *ServiceEventSpec `json:"spec,omitempty"`
-}
-
-// ServiceEventSpec kyma service event spec definition
-type ServiceEventSpec struct {
-	AsyncAPI  string                            `json:"asyncapi,omitempty"`
-	Info      *ServiceEventSpecInfo             `json:"info,omitempty"`
-	BaseTopic string                            `json:"baseTopic,omitempty"`
-	Topics    map[string]*ServiceEventSpecTopic `json:"topics,omitempty"`
-}
-
-// ServiceEventSpecInfo kyma service event spec info definition
-type ServiceEventSpecInfo struct {
-	Title       string `json:"title,omitempty"`
-	Version     string `json:"version,omitempty"`
-	Description string `json:"description,omitempty"`
-}
-
-// ServiceEventSpecTopic kyma service event spec topic definition
-type ServiceEventSpecTopic map[string]*ServiceEventSpecTopicDetail
-
-// ServiceEventSpecTopicDetail kyma service event spec topic detail definition
-type ServiceEventSpecTopicDetail struct {
-	Summary string                 `json:"summary,omitempty"`
-	Payload map[string]interface{} `json:"payload,omitempty"`
+	Spec json.RawMessage `json:"spec,omitempty"`
 }
 
 // ServiceDocumentation kyma service documentation definition
