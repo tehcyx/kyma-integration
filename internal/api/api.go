@@ -5,7 +5,7 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/tehcyx/kyma-integration/internal/certificate"
+	"github.com/tehcyx/kyma-integration/pkg/kyma/certificate"
 )
 
 // KymaIntegration interface for api functions

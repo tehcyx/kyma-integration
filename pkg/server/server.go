@@ -15,7 +15,7 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/tehcyx/kyma-integration/internal/certificate"
+	"github.com/tehcyx/kyma-integration/pkg/kyma/certificate"
 	"github.com/tehcyx/kyma-integration/internal/handler"
 )
 
