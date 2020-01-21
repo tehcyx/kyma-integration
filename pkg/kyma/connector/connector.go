@@ -188,6 +188,14 @@ func (kc *KymaConnector) connectHandler(w http.ResponseWriter, r *http.Request) 
 func (kc *KymaConnector) autoConnectHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
+	redirectURL := r.Header.Get("Referer")
+	parsedRedirect, parseErr := url.Parse(redirectURL)
+	if parseErr != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(fmt.Sprintf("redirect url parse error: %w", parseErr)))
+	}
+	redirectURL = fmt.Sprintf("%s://%s%s", parsedRedirect.Scheme, parsedRedirect.Host, parsedRedirect.Path)
+
 	log.Debugf("Connect request coming in via %s", r.Method)
 	switch r.Method {
 	case http.MethodPost:
@@ -195,23 +203,20 @@ func (kc *KymaConnector) autoConnectHandler(w http.ResponseWriter, r *http.Reque
 		if err != nil {
 			log.Printf("failed to connect application: %w", err)
 			// redirect back to referer and mark with error
-			redirectURL := fmt.Sprintf("%s?error", r.Header.Get("Referer"))
-			http.Redirect(w, r, redirectURL, 302)
+			http.Redirect(w, r, fmt.Sprintf("%s?error", redirectURL), 302)
 			return
 		}
 	default:
 		log.Printf("failed to connect application: method not supported")
 		// redirect back to referer and mark with error
-		redirectURL := fmt.Sprintf("%s?error", r.Header.Get("Referer"))
-		http.Redirect(w, r, redirectURL, 302)
+		http.Redirect(w, r, fmt.Sprintf("%s?error", redirectURL), 302)
 		return
 	}
 	message, err := kc.registerService(ctx)
 	if err != nil {
 		log.Printf("failed to register service: %w", err)
 		// redirect back to referer and mark with error
-		redirectURL := fmt.Sprintf("%s?error", r.Header.Get("Referer"))
-		http.Redirect(w, r, redirectURL, 302)
+		http.Redirect(w, r, fmt.Sprintf("%s?error", redirectURL), 302)
 		return
 	}
 
@@ -221,16 +226,14 @@ func (kc *KymaConnector) autoConnectHandler(w http.ResponseWriter, r *http.Reque
 	if jsonErr != nil {
 		log.Printf("failed to unmarshal service id: %w", jsonErr)
 		// redirect back to referer and mark with error
-		redirectURL := fmt.Sprintf("%s?error", r.Header.Get("Referer"))
-		http.Redirect(w, r, redirectURL, 302)
+		http.Redirect(w, r, fmt.Sprintf("%s?error", redirectURL), 302)
 	}
 
 	// save ID
 	kc.AppConfig.UpdateAppID(resp.ID)
 
 	// redirect back to referer and set this current page as referer
-	redirectURL := fmt.Sprintf("%s?redirect", r.Header.Get("Referer"))
-	http.Redirect(w, r, redirectURL, 302)
+	http.Redirect(w, r, fmt.Sprintf("%s?redirect", redirectURL), 302)
 }
 
 func (kc *KymaConnector) registerServiceHandler(w http.ResponseWriter, r *http.Request) {
