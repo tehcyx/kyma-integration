@@ -46,6 +46,7 @@ func TestKymaConnector_getResponseBodyWithContext(t *testing.T) {
 		fields fields
 		args   args
 		want   string
+		want2  error
 	}{
 		// TODO: Add test cases.
 	}
@@ -56,8 +57,8 @@ func TestKymaConnector_getResponseBodyWithContext(t *testing.T) {
 				AppInfo:       tt.fields.AppInfo,
 				servicePrefix: tt.fields.servicePrefix,
 			}
-			if got := kc.getResponseBodyWithContext(tt.args.ctx, tt.args.url); got != tt.want {
-				t.Errorf("KymaConnector.getResponseBodyWithContext() = %v, want %v", got, tt.want)
+			if got, got2 := kc.getResponseBodyWithContext(tt.args.ctx, tt.args.url); got != tt.want {
+				t.Errorf("KymaConnector.getResponseBodyWithContext() = %v, %v want %v, %v", got, tt.want, got2, tt.want2)
 			}
 		})
 	}
@@ -137,6 +138,7 @@ func TestKymaConnector_SendCSRResponse(t *testing.T) {
 		fields fields
 		args   args
 		want   string
+		want2  error
 	}{
 		// TODO: Add test cases.
 	}
@@ -147,8 +149,8 @@ func TestKymaConnector_SendCSRResponse(t *testing.T) {
 				AppInfo:       tt.fields.AppInfo,
 				servicePrefix: tt.fields.servicePrefix,
 			}
-			if got := kc.SendCSRResponse(tt.args.ctx, tt.args.responseURL, tt.args.subject); got != tt.want {
-				t.Errorf("KymaConnector.SendCSRResponse() = %v, want %v", got, tt.want)
+			if got, got2 := kc.SendCSRResponse(tt.args.ctx, tt.args.responseURL, tt.args.subject); got != tt.want || got2 != tt.want2 {
+				t.Errorf("KymaConnector.SendCSRResponse() = %v, %v want %v, %v", got, tt.want, got2, tt.want2)
 			}
 		})
 	}

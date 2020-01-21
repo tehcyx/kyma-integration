@@ -62,3 +62,8 @@ type ServiceDocumentationDoc struct {
 	Type   string `json:"type,omitempty"`
 	Source string `json:"source,omitempty"`
 }
+
+// RegisterResponse is the response received from registering a service.
+type RegisterResponse struct {
+	ID string `json:"id"`
+}

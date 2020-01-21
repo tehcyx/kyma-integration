@@ -10,7 +10,6 @@ spec:
     port: 8080
   selector:
     app: kyma-integration.v1
-    service-label: test-label
 ---
 apiVersion: apps/v1
 kind: Deployment

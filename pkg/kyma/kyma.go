@@ -6,17 +6,18 @@ import (
 	"github.com/tehcyx/kyma-integration/pkg/server"
 )
 
+// Kyma struct holding the app data, enabling kyma connections and endpoint serving.
 type Kyma struct {
 	Serving   *server.Server
 	Connector *connector.KymaConnector
 }
 
 // New creates a new kyma application
-func New(host, port, securePort string, handlers handler.Param) *Kyma {
-	srv := server.New(host, port, securePort, handlers)
+func New(host, port string, handlers handler.Param) *Kyma {
+	srv := server.New(host, port, handlers)
 	return &Kyma{
 		Serving:   srv,
-		Connector: connector.New(srv, "/connector"),
+		Connector: connector.New(srv, "/kyma"),
 	}
 }
 

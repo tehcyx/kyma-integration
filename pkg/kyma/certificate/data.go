@@ -26,10 +26,5 @@ type CACertificate struct {
 	PrivateKey string
 	PublicKey  string
 	Csr        string
-
-	PrivateKeyPath string
-	PublicKeyPath  string
-	CsrPath        string
-
-	ServerCertPath string
+	ServerCert string
 }
