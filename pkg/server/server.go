@@ -70,6 +70,6 @@ func (srv *Server) StartListen() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Printf("🔓 Listening on %s:%s\n", srv.Host, srv.Port)
+	log.Printf("🔓 Listening on %s:%s", srv.Host, srv.Port)
 	http.Serve(srv.Listener, nil)
 }

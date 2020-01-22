@@ -44,7 +44,7 @@ spec:
     spec:
       containers:
       - name: kyma-integration
-        image: kis:latest
+        image: kyma-integration:0.0.2
         imagePullPolicy: Never
         ports:
         - containerPort: 8080
@@ -63,3 +63,18 @@ spec:
       - name: kyma-integration-app-config
         configMap:
           name: kyma-integration-config
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: kyma-integration-ingress
+  annotations:
+    ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /
+        backend:
+          serviceName: kyma-integration-service
+          servicePort: 8080
