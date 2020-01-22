@@ -16,10 +16,11 @@ func TestGenerateCSR(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    *CACertificate
+		want    interface{}
 		wantErr bool
-	}{
-		// TODO: Add test cases.
+	}{ //"OU=OrgUnit,O=Organization,L=Waldorf,ST=Waldorf,C=DE,CN=api-test"
+		{name: "GenerateCSR should not fail", want: &CACertificate{}, wantErr: false, args: args{names: pkix.Name{CommonName: "hello", OrganizationalUnit: []string{"unit"}, Organization: []string{"org"}, Locality: []string{"city"}, Province: []string{"state"}, Country: []string{"country"}}, expiration: time.Second * 4, size: 2048}},
+		{name: "GenerateCSR should fail if key size not big enough", want: &CACertificate{}, wantErr: true, args: args{names: pkix.Name{CommonName: "hello", OrganizationalUnit: []string{"unit"}, Organization: []string{"org"}, Locality: []string{"city"}, Province: []string{"state"}, Country: []string{"country"}}, expiration: time.Second * 4, size: 2}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -28,8 +29,8 @@ func TestGenerateCSR(t *testing.T) {
 				t.Errorf("GenerateCSR() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("GenerateCSR() = %v, want %v", got, tt.want)
+			if reflect.TypeOf(got) != reflect.TypeOf(tt.want) {
+				t.Errorf("GenerateCSR() = %v, want %v", reflect.TypeOf(got), reflect.TypeOf(tt.want))
 			}
 		})
 	}

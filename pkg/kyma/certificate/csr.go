@@ -15,6 +15,7 @@ import (
 
 //TODO: double check : https://www.socketloop.com/tutorials/golang-create-x509-certificate-private-and-public-keys
 
+// GenerateCSR responsible to generate a certificate to use in certificate signing request flow.
 func GenerateCSR(names pkix.Name, expiration time.Duration, size int) (*CACertificate, error) {
 	keys, err := rsa.GenerateKey(rand.Reader, size)
 	if err != nil {

@@ -155,6 +155,12 @@ func (cfg *Config) UpdateServerCert(certData string) {
 	cfg.saveConfig()
 }
 
+// UpdateRemote updates the app config with the metadata url received from the connect application respsonse and calls saveConfig().
+func (cfg *Config) UpdateRemote(remoteURL string) {
+	cfg.App.Remote = remoteURL
+	cfg.saveConfig()
+}
+
 // New reads or creates a new config. If a config file is in place it will always return the files contents
 func New() Config {
 	configFilePath := getConfigPath()

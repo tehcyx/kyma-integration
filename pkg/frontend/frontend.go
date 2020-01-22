@@ -21,7 +21,7 @@ func init() {
 	}
 }
 
-// IndexHandler handler returning a tiny frontend to do the auto register process of the application
+// IndexHandler handler returning a rendered frontend to do the auto register process of the application
 func IndexHandler(w http.ResponseWriter, r *http.Request) {
 	log.Info("home --")
 

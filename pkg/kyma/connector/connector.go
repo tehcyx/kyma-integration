@@ -212,6 +212,8 @@ func (kc *KymaConnector) autoConnectHandler(w http.ResponseWriter, r *http.Reque
 		http.Redirect(w, r, fmt.Sprintf("%s?error", redirectURL), 302)
 		return
 	}
+	kc.AppConfig.UpdateRemote(kc.AppInfo.API.MetadataURL)
+
 	message, err := kc.registerService(ctx)
 	if err != nil {
 		log.Printf("failed to register service: %w", err)
