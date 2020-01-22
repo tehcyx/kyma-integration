@@ -1,9 +1,7 @@
 package certificate
 
 import (
-	"crypto/tls"
 	"crypto/x509/pkix"
-	"net/http"
 	"reflect"
 	"testing"
 	"time"
@@ -18,10 +16,11 @@ func TestGenerateCSR(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    *CACertificate
+		want    interface{}
 		wantErr bool
-	}{
-		// TODO: Add test cases.
+	}{ //"OU=OrgUnit,O=Organization,L=Waldorf,ST=Waldorf,C=DE,CN=api-test"
+		{name: "GenerateCSR should not fail", want: &CACertificate{}, wantErr: false, args: args{names: pkix.Name{CommonName: "hello", OrganizationalUnit: []string{"unit"}, Organization: []string{"org"}, Locality: []string{"city"}, Province: []string{"state"}, Country: []string{"country"}}, expiration: time.Second * 4, size: 2048}},
+		{name: "GenerateCSR should fail if key size not big enough", want: &CACertificate{}, wantErr: true, args: args{names: pkix.Name{CommonName: "hello", OrganizationalUnit: []string{"unit"}, Organization: []string{"org"}, Locality: []string{"city"}, Province: []string{"state"}, Country: []string{"country"}}, expiration: time.Second * 4, size: 2}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -30,86 +29,8 @@ func TestGenerateCSR(t *testing.T) {
 				t.Errorf("GenerateCSR() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("GenerateCSR() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestLoadClientCert(t *testing.T) {
-	type args struct {
-		cert *CACertificate
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    tls.Certificate
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := LoadClientCert(tt.args.cert)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("LoadClientCert() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("LoadClientCert() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestLoadServerCertBytes(t *testing.T) {
-	type args struct {
-		cert *CACertificate
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    []byte
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := LoadServerCertBytes(tt.args.cert)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("LoadServerCertBytes() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("LoadServerCertBytes() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestCreateTLSConfig(t *testing.T) {
-	type args struct {
-		cert *CACertificate
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    *http.Transport
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := CreateTLSConfig(tt.args.cert)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("CreateTLSConfig() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("CreateTLSConfig() = %v, want %v", got, tt.want)
+			if reflect.TypeOf(got) != reflect.TypeOf(tt.want) {
+				t.Errorf("GenerateCSR() = %v, want %v", reflect.TypeOf(got), reflect.TypeOf(tt.want))
 			}
 		})
 	}

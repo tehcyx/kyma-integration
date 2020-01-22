@@ -3,19 +3,21 @@ package connector
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
-	"net/http/httputil"
 	"net/url"
 	"os"
 
-	"github.com/tehcyx/kyma-integration/internal/handler"
+	log "github.com/sirupsen/logrus"
 
+	"github.com/tehcyx/kyma-integration/internal/handler"
 	"github.com/tehcyx/kyma-integration/pkg/kyma/certificate"
+	"github.com/tehcyx/kyma-integration/pkg/kyma/config"
 	"github.com/tehcyx/kyma-integration/pkg/server"
 )
 
@@ -23,103 +25,15 @@ import (
 type KymaConnector struct {
 	Serving       *server.Server
 	AppInfo       *certificate.ApplicationConnectResponse
+	AppConfig     config.Config
 	servicePrefix string
 }
 
-// New Kyma one time init factory
-func New(srv *server.Server, prefix string) *KymaConnector {
-	kc := &KymaConnector{
-		Serving:       srv,
-		servicePrefix: prefix,
-	}
-	handlers := make(handler.Param)
+var serviceDescription *Service
 
-	handlers[fmt.Sprintf("%s%s", prefix, "/connect")] = kc.connectHandler
-	handlers[fmt.Sprintf("%s%s", prefix, "/register-service")] = kc.registerServiceHandler
-
-	kc.Serving.AddHandlers(handlers)
-
-	return kc
-}
-
-func (kc *KymaConnector) getResponseBodyWithContext(ctx context.Context, url string) string {
-	req, err := http.NewRequest("GET", url, nil)
-	req = req.WithContext(ctx)
-
-	resp, err := kc.Serving.Client.Do(req)
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusOK {
-		bodyBytes, _ := ioutil.ReadAll(resp.Body)
-		bodyString := string(bodyBytes)
-		return bodyString
-	}
-	return fmt.Sprintf("Status: %d, Message: %s", resp.StatusCode, "error")
-}
-
-func (kc *KymaConnector) connectHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	log.Println("handler started")
-	defer log.Println("handler ended")
-
-	params, ok := r.URL.Query()["url"]
-
-	if !ok || len(params[0]) < 1 {
-		log.Fatalf("Url Param 'url' is missing")
-		return
-	}
-	urlParam, err := url.Parse(params[0])
-	if err != nil {
-		fmt.Fprintln(w, "error need url param")
-	}
-
-	resp := kc.getResponseBodyWithContext(ctx, urlParam.String())
-
-	appData := &certificate.ApplicationConnectResponse{}
-
-	unmarshalInfoErr := json.Unmarshal([]byte(resp), appData)
-	if unmarshalInfoErr != nil {
-		fmt.Fprintln(w, "could not parse response")
-	}
-
-	kc.AppInfo = appData
-
-	resp = kc.SendCSRResponse(ctx, appData.CsrURL, appData.Certificate.Subject)
-
-	certData := &certificate.CertConnectResponse{}
-
-	unmarshalCertErr := json.Unmarshal([]byte(resp), certData)
-	if unmarshalCertErr != nil {
-		fmt.Fprintln(w, "could not parse response")
-	}
-
-	decodedCert, decodeErr := base64.StdEncoding.DecodeString(certData.Cert)
-	if decodeErr != nil {
-		fmt.Fprintf(w, "something went wrong decoding the response")
-	}
-	certData.Cert = string(decodedCert)
-	certBytes := []byte(certData.Cert)
-	errCert := ioutil.WriteFile(kc.Serving.Certificate.ServerCertPath, certBytes, 0644)
-	if errCert != nil {
-		log.Fatalf("couldn't write server cert: %s", errCert)
-	}
-
-	kc.Serving.StartListenTLS()
-
-	fmt.Fprintf(w, "Connected successfully: \n%v", kc.AppInfo)
-}
-
-func (kc *KymaConnector) registerServiceHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	if kc.AppInfo == nil {
-		fmt.Fprintf(w, "It seems the server crashed since we connected, so currently you need to reconnect it to use this endpoint.")
-	}
-
-	serviceDescription := new(Service)
+// init generates a new service description on package import
+func init() {
+	serviceDescription = new(Service)
 
 	// Documentation part of the serviceDescription broken: https://github.com/kyma-project/kyma/issues/3347
 	serviceDescription.Documentation = new(ServiceDocumentation)
@@ -220,58 +134,268 @@ func (kc *KymaConnector) registerServiceHandler(w http.ResponseWriter, r *http.R
 			}
 		}
 	}`)
+}
 
-	jsonBytes, err := json.Marshal(serviceDescription)
+// New Kyma one time init factory.
+func New(srv *server.Server, prefix string) *KymaConnector {
+	kc := &KymaConnector{
+		Serving:       srv,
+		servicePrefix: prefix,
+	}
+	handlers := make(handler.Param)
+
+	handlers[fmt.Sprintf("%s%s", prefix, "/connect")] = kc.connectHandler
+	handlers[fmt.Sprintf("%s%s", prefix, "/connect/auto")] = kc.autoConnectHandler
+	handlers[fmt.Sprintf("%s%s", prefix, "/register-service")] = kc.registerServiceHandler
+
+	kc.Serving.AddHandlers(handlers)
+	kc.AppConfig = config.New()
+
+	return kc
+}
+
+func (kc *KymaConnector) getResponseBodyWithContext(ctx context.Context, url string) (string, error) {
+	req, err := http.NewRequest("GET", url, nil)
+	req = req.WithContext(ctx)
+
+	resp, err := kc.Serving.Client.Do(req)
 	if err != nil {
-		log.Fatalf("JSON marshal failed: %s", err)
+		return "", fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusOK {
+		bodyBytes, _ := ioutil.ReadAll(resp.Body)
+		bodyString := string(bodyBytes)
+		return bodyString, nil
+	}
+	return "", fmt.Errorf("response was not 200 as expected but %d instead", resp.StatusCode)
+}
+
+func (kc *KymaConnector) connectHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	err := kc.connectApplicationPOST(ctx, r)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(fmt.Errorf("failed to connect application: %w", err).Error()))
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(fmt.Sprintf("Connected successfully: \n%v", kc.AppInfo)))
+}
+
+func (kc *KymaConnector) autoConnectHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	redirectURL := r.Header.Get("Referer")
+	parsedRedirect, parseErr := url.Parse(redirectURL)
+	if parseErr != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(fmt.Sprintf("redirect url parse error: %w", parseErr)))
+	}
+	redirectURL = fmt.Sprintf("%s://%s%s", parsedRedirect.Scheme, parsedRedirect.Host, parsedRedirect.Path)
+
+	log.Debugf("Connect request coming in via %s", r.Method)
+	switch r.Method {
+	case http.MethodPost:
+		err := kc.connectApplicationPOST(ctx, r)
+		if err != nil {
+			log.Printf("failed to connect application: %w", err)
+			// redirect back to referer and mark with error
+			http.Redirect(w, r, fmt.Sprintf("%s?error", redirectURL), 302)
+			return
+		}
+	default:
+		log.Printf("failed to connect application: method not supported")
+		// redirect back to referer and mark with error
+		http.Redirect(w, r, fmt.Sprintf("%s?error", redirectURL), 302)
+		return
+	}
+	kc.AppConfig.UpdateRemote(kc.AppInfo.API.MetadataURL)
+
+	message, err := kc.registerService(ctx)
+	if err != nil {
+		log.Printf("failed to register service: %w", err)
+		// redirect back to referer and mark with error
+		http.Redirect(w, r, fmt.Sprintf("%s?error", redirectURL), 302)
 		return
 	}
 
-	if kc.AppInfo == nil || kc.AppInfo.API.MetadataURL == "" {
-		log.Fatalf("%s", fmt.Errorf("metadata url is missing, cannot proceed"))
+	resp := RegisterResponse{}
+	log.Println(string(message))
+	jsonErr := json.Unmarshal(message, &resp)
+	if jsonErr != nil {
+		log.Printf("failed to unmarshal service id: %w", jsonErr)
+		// redirect back to referer and mark with error
+		http.Redirect(w, r, fmt.Sprintf("%s?error", redirectURL), 302)
 	}
 
-	req, err := http.NewRequest("POST", kc.AppInfo.API.MetadataURL, bytes.NewBuffer(jsonBytes))
-	if err != nil {
-		log.Fatalf("Couldn't create request to register service: %s", err)
-	}
-	req.WithContext(ctx)
+	// save ID
+	kc.AppConfig.UpdateAppID(resp.ID)
 
-	resp, err := kc.Serving.SecureClient.Do(req)
-	if err != nil {
-		log.Fatalf("Couldn't register service: %s", err)
-	}
-	dump, err := httputil.DumpResponse(resp, true)
-	defer resp.Body.Close() // close body after using it
-	if err != nil {
-		log.Fatalf("could not dump response: %v", err)
-	}
-	fmt.Printf("%s\n", dump)
-	bodyString := string(dump)
-
-	if resp.StatusCode == http.StatusOK {
-		log.Printf("Successfully registered service with")
-		fmt.Fprintf(w, bodyString)
-	} else {
-		fmt.Fprintf(w, "Status: %d >%s< \n on URL: %s", resp.StatusCode, bodyString, kc.AppInfo.API.MetadataURL)
-	}
+	// redirect back to referer and set this current page as referer
+	http.Redirect(w, r, fmt.Sprintf("%s?redirect", redirectURL), 302)
 }
 
-func (kc *KymaConnector) SendCSRResponse(ctx context.Context, responseURL, subject string) string {
-	kc.Serving.Certificate = kc.Serving.GenerateKeysAndCertificate(subject)
+func (kc *KymaConnector) registerServiceHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	message, err := kc.registerService(ctx)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(fmt.Errorf("failed to register service: %w", err).Error()))
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(message))
+}
+
+// SendCSRResponse sends a POST request with a newly generated certificate signing request response to the passed URL.
+func (kc *KymaConnector) SendCSRResponse(ctx context.Context, responseURL, subject string) (string, error) {
+	kc.Serving.Certificate = kc.AppConfig.GenerateKeysAndCertificate(subject)
 
 	var jsonStr = []byte(fmt.Sprintf("{\"csr\":\"%s\"}", base64.StdEncoding.EncodeToString([]byte(kc.Serving.Certificate.Csr))))
 	req, err := http.NewRequest("POST", responseURL, bytes.NewBuffer(jsonStr))
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
 	req.Header.Set("Content-Type", "application/json")
 	req = req.WithContext(ctx)
 
 	resp, err := kc.Serving.Client.Do(req)
 	if err != nil {
-		panic(err)
+		return "", fmt.Errorf("csr failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	bodyBytes, _ := ioutil.ReadAll(resp.Body)
 	bodyString := string(bodyBytes)
-	return bodyString
+	return bodyString, nil
+}
+
+func (kc *KymaConnector) connectApplicationPOST(ctx context.Context, r *http.Request) error {
+	if err := r.ParseForm(); err != nil {
+		return fmt.Errorf("ParseForm() failed to parse POST form data: %w", err)
+	}
+	log.Println(r.Form)
+	urlVar := r.FormValue("url")
+
+	if urlVar == "" {
+		return fmt.Errorf("Url Param 'url' is missing")
+	}
+	parsedURL, urlParseErr := url.Parse(urlVar)
+	if urlParseErr != nil {
+		return fmt.Errorf("need url param: %w", urlParseErr)
+	}
+
+	return kc.connectApplication(ctx, parsedURL.String())
+}
+
+func (kc *KymaConnector) connectApplication(ctx context.Context, url string) error {
+	resp, err := kc.getResponseBodyWithContext(ctx, url)
+	if err != nil {
+		return fmt.Errorf("connect application request failed: %w", err)
+	}
+
+	appData := &certificate.ApplicationConnectResponse{}
+
+	unmarshalInfoErr := json.Unmarshal([]byte(resp), appData)
+	if unmarshalInfoErr != nil {
+		return fmt.Errorf("failed to unmarshal json response: %w", unmarshalInfoErr)
+	}
+	kc.AppInfo = appData
+
+	resp, csrErr := kc.SendCSRResponse(ctx, appData.CsrURL, appData.Certificate.Subject)
+	if csrErr != nil {
+		return fmt.Errorf("csr failed %w", csrErr)
+	}
+
+	certData := &certificate.CertConnectResponse{}
+
+	unmarshalCertErr := json.Unmarshal([]byte(resp), certData)
+	if unmarshalCertErr != nil {
+		fmt.Errorf("could not parse response: %w", unmarshalCertErr)
+	}
+
+	decodedCert, decodeErr := base64.StdEncoding.DecodeString(certData.Cert)
+	if decodeErr != nil {
+		fmt.Errorf("something went wrong decoding the response: %w", decodeErr)
+	}
+	certData.Cert = string(decodedCert)
+	// store cert in config
+	kc.AppConfig.UpdateServerCert(certData.Cert)
+	return nil
+}
+
+func (kc *KymaConnector) registerService(ctx context.Context) ([]byte, error) {
+	if kc.AppInfo == nil {
+		return []byte{}, fmt.Errorf("remote application data not in memory, can't register service")
+	}
+	if kc.AppInfo == nil || kc.AppInfo.API.MetadataURL == "" {
+		return []byte{}, fmt.Errorf("metadata url is missing, cannot proceed")
+	}
+	jsonBytes, err := json.Marshal(serviceDescription)
+	if err != nil {
+		return []byte{}, fmt.Errorf("JSON marshal failed: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", kc.AppInfo.API.MetadataURL, bytes.NewBuffer(jsonBytes))
+	if err != nil {
+		return []byte{}, fmt.Errorf("couldn't create request to register service: %w", err)
+	}
+	req.WithContext(ctx)
+
+	client, cliErr := secureClientInit(kc.AppConfig)
+	if cliErr != nil {
+		return []byte{}, fmt.Errorf("error creating secure client: %w", cliErr)
+	}
+	kc.Serving.SecureClient = client
+
+	resp, err := kc.Serving.SecureClient.Do(req)
+	if err != nil {
+		return []byte{}, fmt.Errorf("couldn't register service: %w", err)
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	defer resp.Body.Close() // close body after using it
+	if err != nil {
+		return []byte{}, fmt.Errorf("could not read response: %w", err)
+	}
+
+	if resp.StatusCode == http.StatusOK {
+		log.Debug("Successfully registered service with")
+		return body, nil
+	}
+	return []byte{}, fmt.Errorf("status: %d >%s< \n on URL: %s", resp.StatusCode, string(body), kc.AppInfo.API.MetadataURL)
+}
+
+func secureClientInit(cfg config.Config) (*http.Client, error) {
+	tr, transErr := createTransport(cfg)
+	if transErr != nil {
+		return nil, fmt.Errorf("error creating secure transport config: %w", transErr)
+	}
+	return &http.Client{Transport: tr}, nil
+}
+
+func createTransport(cfg config.Config) (*http.Transport, error) {
+	clientCert, x509Err := tls.X509KeyPair([]byte(cfg.ServerCert), []byte(cfg.PrivateKey))
+	if x509Err != nil {
+		return nil, fmt.Errorf("loading x509 key pair failed: %w", x509Err)
+	}
+
+	serverCert := []byte(cfg.ServerCert)
+
+	caCertPool := x509.NewCertPool()
+	caCertPool.AppendCertsFromPEM(serverCert)
+
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: true,
+		Certificates:       []tls.Certificate{clientCert},
+		RootCAs:            caCertPool,
+	}
+	tlsConfig.BuildNameToCertificate()
+
+	return &http.Transport{
+		TLSClientConfig: tlsConfig,
+	}, nil
 }
