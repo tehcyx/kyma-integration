@@ -6,13 +6,13 @@ GIT_COMMIT=$(shell git rev-list -1 HEAD)
 run: bin/templates
 	go run cmd/kis/main.go
 
-build: bin/templates test cover
+build: bin/templates fmt test cover
 	go build -ldflags "-X github.com/tehcyx/kyma-integration/pkg/cmd.Version=${KIS_VERSION} -X github.com/tehcyx/kyma-integration/pkg/cmd.GitCommit=${GIT_COMMIT}" -i -o bin/kis ./cmd/kis
 
-docker: bin/templates test cover
+docker: bin/templates fmt test cover
 	CGO_ENABLED=0 GOOS=linux go build -ldflags "-X github.com/tehcyx/kyma-integration/pkg/cmd.Version=${KIS_VERSION} -X github.com/tehcyx/kyma-integration/pkg/cmd.GitCommit=${GIT_COMMIT} -s" -a -installsuffix cgo -i -o bin/kisdocker ./cmd/kis
 
-dockertest: bin/templates
+dockertest: bin/templates fmt
 	CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -i -o bin/appdocker ./cmd/test
 	docker build -f build/package/Dockerfile.test -t test-app:label .
 	kind load docker-image test-app:label --name "config-map"
@@ -29,7 +29,12 @@ install: build
 bin/templates:
 	mkdir -p internal/tmpl
 	go run hack/packtemplates.go
-	go fmt github.com/tehcyx/kyma-integration/internal/tmpl
+
+fmt:
+	go fmt ./...
+
+lint:
+	golint ./...
 
 test:
 	go test ./...
