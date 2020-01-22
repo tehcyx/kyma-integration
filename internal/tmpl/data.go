@@ -7,7 +7,7 @@ var TMPLMap = map[string]string{
     <footer class="py-5 px-5">
         <div class="container">
             <p>
-                Built with &#10084; by 
+                Built <!-- with &#10084; --> by 
                 <span class="text-muted">
                     <a href="https://github.com/tehcyx/">@tehcyx</a>
                 </span>
