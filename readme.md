@@ -6,6 +6,7 @@
         ```
         time="2020-01-21T19:51:39-08:00" level=info msg="🔓 Listening on 0.0.0.0:8080"
         ```
+    * A `config.yaml` is created in the directory where the binary is, if you don't specify a different path in the `CONFIG_DIR` environment variable.
 * Open browser and connect to your local kyma cluster to create an application [https://console.kyma.local/home/cmf-apps](https://console.kyma.local/home/cmf-apps)
 * Add a new application
 * Click on connect application and copy the URL with the token
@@ -32,7 +33,7 @@
 
 # How To Run On k8s/kind
 
-* Install Kyma on minikube
+* Install Kyma on minikube or use a remote Kyma.
 * Run `make setupkind` to initialize a kind cluster just for this application.
 * Run `make docker` to create a docker binary
 * Run `docker build -f build/package/Dockerfile -t kyma-integration:$(shell cat VERSION)` to create a docker container and tag it with the current version.
